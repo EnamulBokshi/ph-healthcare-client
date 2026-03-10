@@ -1,3 +1,4 @@
+import { ApiResponse } from '@/types/api.types';
 import axios from  'axios'
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
@@ -24,9 +25,10 @@ export interface ApiReqeustOptions {
     headers?: Record<string, string>,
 }
 
-const httpGet = async(endPoint: string, options?: ApiReqeustOptions) => {
+const httpGet = async<TData>(endPoint: string, options?: ApiReqeustOptions):Promise<ApiResponse<TData>> => {
     try {
-        const response = await axiosInstance().get(endPoint, {
+        const instance = axiosInstance();
+        const response = await instance.get<ApiResponse<TData>>(endPoint, {
             params: options?.params,
             headers: options?.headers
         });
@@ -39,9 +41,26 @@ const httpGet = async(endPoint: string, options?: ApiReqeustOptions) => {
     }
 }
 
-const httpPut = async(endPoint: string, data: unknown, options?: ApiReqeustOptions) => {
+const httpPost = async<TData>(endPoint: string, data: unknown, options?: ApiReqeustOptions):Promise<ApiResponse<TData>> => {
     try {
-        const response = await axiosInstance().put(endPoint, data, {
+        const instance = axiosInstance();
+        const response = await instance.post<ApiResponse<TData>>(endPoint, data, {
+            params: options?.params,
+            headers: options?.headers
+        });
+
+        return response.data;
+        
+    } catch (error) {
+        console.error(`POST request to ${endPoint} failed: `, error);
+        throw error;
+    }
+}
+
+const httpPut = async<TData>(endPoint: string, data: unknown, options?: ApiReqeustOptions):Promise<ApiResponse<TData>> => {
+    try {
+        const instance = axiosInstance();
+        const response = await instance.put<ApiResponse<TData>>(endPoint, data, {
             params: options?.params,
             headers: options?.headers
         });
@@ -54,9 +73,10 @@ const httpPut = async(endPoint: string, data: unknown, options?: ApiReqeustOptio
     }
 }
 
-const httpDelete = async(endPoint: string, options?: ApiReqeustOptions) => {
+const httpDelete = async<TData>(endPoint: string, options?: ApiReqeustOptions):Promise<ApiResponse<TData>> => {
     try {
-        const response = await axiosInstance().delete(endPoint, {
+        const instance = axiosInstance();
+        const response = await instance.delete<ApiResponse<TData>>(endPoint, {
             params: options?.params,
             headers: options?.headers
         });
@@ -69,9 +89,10 @@ const httpDelete = async(endPoint: string, options?: ApiReqeustOptions) => {
     }   
 }
 
-const httpPatch = async(endPoint: string, data: unknown, options?: ApiReqeustOptions) => {
+const httpPatch = async<TData>(endPoint: string, data: unknown, options?: ApiReqeustOptions):Promise<ApiResponse<TData>> => {
     try {
-        const response = await axiosInstance().patch(endPoint, data, {
+        const instance = axiosInstance();
+        const response = await instance.patch<ApiResponse<TData>>(endPoint, data, {
             params: options?.params,
             headers: options?.headers
         });
@@ -87,5 +108,6 @@ export const httpClient = {
     get: httpGet,
     put: httpPut,
     delete: httpDelete,
-    patch: httpPatch
+    patch: httpPatch,
+    post: httpPost,
 }
