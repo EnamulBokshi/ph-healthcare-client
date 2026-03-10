@@ -14,6 +14,9 @@ importers:
       '@tanstack/react-devtools':
         specifier: ^0.9.10
         version: 0.9.10(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(csstype@3.2.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(solid-js@1.9.11)
+      '@tanstack/react-form':
+        specifier: ^1.28.4
+        version: 1.28.4(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@tanstack/react-form-devtools':
         specifier: ^0.2.17
         version: 0.2.17(@types/react@19.2.14)(csstype@3.2.3)(react@19.2.3)(solid-js@1.9.11)

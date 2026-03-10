@@ -26,7 +26,6 @@ export const loginAction = async (payload:ILoginPayload): Promise<ILoginResponse
         await setTokenInCookies("better-auth.session_token", token);
 
         redirect("/dashboard");
-        return response.data;
     } catch (error) {
         return {
             success: false,
