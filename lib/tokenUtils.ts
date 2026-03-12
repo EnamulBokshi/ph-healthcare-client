@@ -13,25 +13,29 @@ const getTokenRemainingTime = (token: string): number => {
   if (!token) return 0;
 
   try {
-    const tokenPayload = jwtAccessSecret
-      ? (jwt.verify(token, jwtAccessSecret) as JwtPayload)
-      : (jwt.decode(token) as JwtPayload);
+    const tokenPayload= jwt.decode(token) as JwtPayload;
 
-    if (tokenPayload && !tokenPayload.exp) return 0;
+        if (tokenPayload && !tokenPayload.exp){
+            return 0;
+        }
 
-    const currentTime = Math.floor(Date.now() / 1000);
-    const remainingTime = (tokenPayload.exp as number) - currentTime;
-    return remainingTime > 0 ? remainingTime : 0;
+        const remainingSeconds = tokenPayload.exp as number - Math.floor(Date.now() / 1000)
+
+        return remainingSeconds > 0 ? remainingSeconds : 0;
+
   } catch (error) {
     console.error("Error decoding token:", error);
     return 0;
   }
 };
 
-export const setTokenInCookies = async (name: string, token: string) => {
-  const maxAgeInSeconds = getTokenRemainingTime(token);
+export const setTokenInCookies = async (name: string, token: string, fallbackMaxAgeInSeconds:number = 24*60*60) => {
 
-  if (maxAgeInSeconds > 0) {
-    await setCookie(name, token, maxAgeInSeconds);
-  }
+  let maxAgeInSeconds;
+
+    if (name !== "better-auth.session_token"){
+        maxAgeInSeconds = getTokenRemainingTime(token);
+    }
+
+    await setCookie(name, token, maxAgeInSeconds || fallbackMaxAgeInSeconds);
 };
