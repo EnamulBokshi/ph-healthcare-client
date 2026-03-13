@@ -77,3 +77,15 @@ export const getDefaultDashboardRoute = (role: UserRole): string => {
     }
 }
 
+export const isValidRedirectPath = (redirectPath: string, role: UserRole) => {
+    role = role === UserRole.SUPER_ADMIN ? UserRole.ADMIN : role; // Treat SUPER_ADMIN as ADMIN for redirect purposes
+    const routeOwner = getRouteOwner(redirectPath);
+    
+    if(!routeOwner || routeOwner === 'COMMON') {
+        return true; // Allow redirect to public routes
+    }
+    if(routeOwner === role) {
+        return true;
+    }
+    return false;
+}

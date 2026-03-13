@@ -22,11 +22,11 @@ import Link from "next/link";
 import React from "react";
 import { email } from "zod";
 
-export default function LoginForm() {
+export default function LoginForm({redirectTo}: {redirectTo: string}) {
   const [serverError, setServerError] = React.useState<string | null>(null);
   const [showPassword, setShowPassword] = React.useState(false);
   const { mutateAsync } = useMutation({
-    mutationFn: async (payload: ILoginPayload) => loginAction(payload),
+    mutationFn: async (payload: ILoginPayload) => loginAction(payload, redirectTo),
   });
   const form = useForm({
     defaultValues: {
