@@ -16,3 +16,11 @@ export interface ILoginResponse {
         needPasswordChange: boolean;
     }
 }
+
+
+export enum UserRole {
+    SUPER_ADMIN = "SUPER_ADMIN",
+    ADMIN = "ADMIN",
+    DOCTOR = "DOCTOR",
+    PATIENT = "PATIENT",
+}
