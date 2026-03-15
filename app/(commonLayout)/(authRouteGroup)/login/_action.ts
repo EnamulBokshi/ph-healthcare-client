@@ -42,9 +42,12 @@ export const loginAction = async (payload:ILoginPayload, redirectTo?: string): P
             redirect(targetPath);
         }
 
-    } catch (error) {
+    } catch (error:any) {
         if(error && typeof error === "object" && "digest" in error && typeof error.digest === "string" && error.digest.startsWith("NEXT_REDIRECT")){
             throw error; // Rethrow redirect errors to be handled by Next.js
+        }
+        if(error && error.response && error.response.data.message === "Email not verified"){
+            redirect(`/verify-email?email=${payload.email}`);
         }
         return {
             success: false,

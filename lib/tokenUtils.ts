@@ -9,7 +9,7 @@ if (!jwtAccessSecret) {
   throw new Error("JWT_ACCESS_SECRET is not defined in environment variables");
 }
 
-const getTokenRemainingTime = (token: string): number => {
+const getTokenRemainingTime = async (token: string) => {
   if (!token) return 0;
 
   try {
@@ -34,19 +34,19 @@ export const setTokenInCookies = async (name: string, token: string, fallbackMax
   let maxAgeInSeconds;
 
     if (name !== "better-auth.session_token"){
-        maxAgeInSeconds = getTokenRemainingTime(token);
+        maxAgeInSeconds = await getTokenRemainingTime(token);
     }
 
     await setCookie(name, token, maxAgeInSeconds || fallbackMaxAgeInSeconds);
 };
 
 
-export const isTokenExpiringSoon = (token: string, thresholdInSeconds = 300) => {
-  const remainingSeconds = getTokenRemainingTime(token);
+export const isTokenExpiringSoon = async (token: string, thresholdInSeconds = 300) => {
+  const remainingSeconds = await getTokenRemainingTime(token);
   return remainingSeconds > 0 && remainingSeconds <= thresholdInSeconds;
 }
 
-export const isTokenExpired = (token: string) =>  {
-  const remainingSeconds = getTokenRemainingTime(token);
+export const isTokenExpired = async (token: string) =>  {
+  const remainingSeconds = await getTokenRemainingTime(token);
   return remainingSeconds === 0;
 }
