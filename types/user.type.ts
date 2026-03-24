@@ -7,3 +7,10 @@ export interface UserInfo{
     role: UserRole;
     
 }
+
+export enum UserStatus{
+    ACTIVE = "ACTIVE",
+    INACTIVE = "INACTIVE",
+    SUSPENDED = "SUSPENDED",
+    DELETED = "DELETED"
+}

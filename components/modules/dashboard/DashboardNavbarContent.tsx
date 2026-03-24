@@ -39,10 +39,10 @@ export default function DashboardNavbarContent({
     <header className="flex h-16 items-center gap-3 border-b bg-background px-4 md:px-6">
       {/* Mobile menu toggle button */}
       <Sheet open={isOpen && isMobileMenuOpen} onOpenChange={setIsOpen}>
-        <SheetTrigger className="md:hidden">
-          <Button variant="outline" size="icon" aria-label="Open sidebar menu" className="md:hidden">
-            <Menu />
-          </Button>
+        <SheetTrigger
+          render={<Button variant="outline" size="icon" aria-label="Open sidebar menu" className="md:hidden" />}
+        >
+          <Menu />
         </SheetTrigger>
         {/* Mobile Sidebar Content */}
         <SheetContent side='left' className="w-64 p-0">

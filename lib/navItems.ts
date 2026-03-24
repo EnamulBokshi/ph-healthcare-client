@@ -181,7 +181,10 @@ export const patientNavItems: NavSection[] = [
 
 
 export const navItemsByRole = (role: UserRole): NavSection[] => {
+    role = role === UserRole.SUPER_ADMIN? UserRole.ADMIN : role;
     const commonItems = getCommonNavItems(role);
+    console.log("Common Items:", commonItems);
+    console.log("Role:", role);
     switch (role){
         case UserRole.ADMIN: 
             return [...commonItems, ...adminNavItems];
