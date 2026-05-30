@@ -249,7 +249,8 @@ export default function DoctorsList({ queryString, queryParamsObject }: DoctorsL
     router.push(nextQuery ? `${pathname}?${nextQuery}` : pathname);
   };
 
-  const handleLimitChange = (nextLimit: string) => {
+  const handleLimitChange = (nextLimit: string | null) => {
+    if (!nextLimit) return;
     const parsed = Number(nextLimit);
     if (!Number.isFinite(parsed) || parsed <= 0) {
       return;
@@ -298,7 +299,7 @@ export default function DoctorsList({ queryString, queryParamsObject }: DoctorsL
             className="lg:col-span-2"
           />
 
-          <Select value={genderState || "all"} onValueChange={(value) => updateParam("gender", value === "all" ? "" : value)}>
+          <Select value={genderState || "all"} onValueChange={(value) => updateParam("gender", !value || value === "all" ? "" : value)}>
             <SelectTrigger className="w-full" size="default">
               <SelectValue placeholder="Gender" />
             </SelectTrigger>
@@ -313,7 +314,7 @@ export default function DoctorsList({ queryString, queryParamsObject }: DoctorsL
           <Select
             value={specialtyState || "all"}
             onValueChange={(value) =>
-              updateParam("specialties.specialty.title", value === "all" ? "" : value)
+              updateParam("specialties.specialty.title", !value || value === "all" ? "" : value)
             }
           >
             <SelectTrigger className="w-full" size="default">
@@ -333,6 +334,7 @@ export default function DoctorsList({ queryString, queryParamsObject }: DoctorsL
             <Select
               value={sortByState ? `${sortByState}:${sortOrderState || "asc"}` : "default"}
               onValueChange={(value) => {
+                if (!value) return;
                 if (value === "default") {
                   updateParam("sortBy", "");
                   updateParam("sortOrder", "");

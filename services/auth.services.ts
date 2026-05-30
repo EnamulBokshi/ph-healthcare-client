@@ -71,3 +71,11 @@ export const getUserInfo = async () => {
   const { data } = await res.json();
   return data;
 };
+
+export const logoutUser = async () => {
+  const cookieStore = await cookies();
+  cookieStore.delete("accessToken");
+  cookieStore.delete("refreshToken");
+  cookieStore.delete("better-auth.session_token");
+};
+
