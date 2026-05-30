@@ -109,12 +109,12 @@ export default function DoctorFilters({
 
   const activeCount = useMemo(() => countActiveFilters(value), [value]);
 
-  const toggleSpecialty = (specialtyId: string, checked: boolean) => {
+  const toggleSpecialty = (specialtyTitle: string, checked: boolean) => {
     setDraft((prev) => ({
       ...prev,
       specialties: checked
-        ? Array.from(new Set([...prev.specialties, specialtyId]))
-        : prev.specialties.filter((id) => id !== specialtyId),
+        ? Array.from(new Set([...prev.specialties, specialtyTitle]))
+        : prev.specialties.filter((title) => title !== specialtyTitle),
     }));
   };
 
@@ -176,9 +176,9 @@ export default function DoctorFilters({
                   specialties.map((specialty) => (
                     <DropdownMenuCheckboxItem
                       key={specialty.id}
-                      checked={draft.specialties.includes(specialty.id)}
+                      checked={draft.specialties.includes(specialty.title)}
                       onCheckedChange={(checked) =>
-                        toggleSpecialty(specialty.id, checked === true)
+                        toggleSpecialty(specialty.title, checked === true)
                       }
                     >
                       {specialty.title}

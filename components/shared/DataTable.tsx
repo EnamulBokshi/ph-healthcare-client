@@ -102,21 +102,24 @@ export default function DataTable<TData>({
                 <DropdownMenuContent align="end">
                   {actions.onView && (
                     <DropdownMenuItem
-                      onSelect={() => actions.onView?.(rowData)}
+                      onClick={() => actions.onView?.(rowData)}
+                      className="cursor-pointer"
                     >
                       View
                     </DropdownMenuItem>
                   )}
                   {actions.onEdit && (
                     <DropdownMenuItem
-                      onSelect={() => actions.onEdit?.(rowData)}
+                      onClick={() => actions.onEdit?.(rowData)}
+                      className="cursor-pointer"
                     >
                       Edit
                     </DropdownMenuItem>
                   )}
                   {actions.onDelete && (
                     <DropdownMenuItem
-                      onSelect={() => actions.onDelete?.(rowData)}
+                      onClick={() => actions.onDelete?.(rowData)}
+                      className="cursor-pointer"
                     >
                       Delete
                     </DropdownMenuItem>

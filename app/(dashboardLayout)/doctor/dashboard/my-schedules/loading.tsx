@@ -1,7 +1,5 @@
-import React from 'react'
+import Loading from "@/components/shared/Loading";
 
 export default function DoctorMyScheduleLoding() {
-  return (
-    <div>DoctorMyScheduleLoding...</div>
-  )
+  return <Loading />;
 }

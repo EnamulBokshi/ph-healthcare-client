@@ -1,7 +1,5 @@
-import React from 'react'
+import Loading from "@/components/shared/Loading";
 
 export default function ConsultationLoading() {
-  return (
-    <div>ConsultationLoading...</div>
-  )
+  return <Loading />;
 }

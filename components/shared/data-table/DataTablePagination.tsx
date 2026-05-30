@@ -68,27 +68,46 @@ export default function DataTablePagination({
   }, [state.pageSize, isCustomPageSize]);
 
   const getVisiblePages = () => {
-    if (totalPages <= 7) {
-      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    const pages: (number | string)[] = [];
+    const delta = 2; // Number of pages on each side of current page
+    const maxPages = 5 + 2 * delta; // Maximum consecutive pages to show
+
+    // Always add first page
+    pages.push(1);
+
+    // Determine the range around current page
+    let left = Math.max(2, currentPage - delta);
+    let right = Math.min(totalPages - 1, currentPage + delta);
+
+    // Adjust range if we're near the start or end
+    if (currentPage <= maxPages / 2) {
+      right = Math.min(totalPages - 1, maxPages);
+    }
+    if (currentPage > totalPages - maxPages / 2) {
+      left = Math.max(2, totalPages - maxPages + 1);
     }
 
-    if (currentPage <= 4) {
-      return [1, 2, 3, 4, 5, -1, totalPages];
+    // Add ellipsis if there's a gap after first page
+    if (left > 2) {
+      pages.push(-1); // -1 represents ellipsis
     }
 
-    if (currentPage >= totalPages - 3) {
-      return [
-        1,
-        -1,
-        totalPages - 4,
-        totalPages - 3,
-        totalPages - 2,
-        totalPages - 1,
-        totalPages,
-      ];
+    // Add pages in the range
+    for (let i = left; i <= right; i++) {
+      pages.push(i);
     }
 
-    return [1, -1, currentPage - 1, currentPage, currentPage + 1, -1, totalPages];
+    // Add ellipsis if there's a gap before last page
+    if (right < totalPages - 1) {
+      pages.push(-1); // -1 represents ellipsis
+    }
+
+    // Always add last page (if totalPages > 1)
+    if (totalPages > 1) {
+      pages.push(totalPages);
+    }
+
+    return pages;
   };
 
   const visiblePages = getVisiblePages();
@@ -224,7 +243,7 @@ export default function DataTablePagination({
                     isActive={page === currentPage}
                     onClick={(e) => {
                       e.preventDefault();
-                      goToPage(page);
+                      goToPage(page as number);
                     }}
                   >
                     {page}

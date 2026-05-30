@@ -7,5 +7,4 @@ export const getIconComponent = (iconName: string): LucideIcon => {
         return Icons["Circle"] as LucideIcon; // Default icon
     }
     return IconComponent;
-
 }

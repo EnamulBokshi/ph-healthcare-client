@@ -6,7 +6,6 @@ import { getIconComponent } from "@/lib/iconMapper";
 import { cn } from "@/lib/utils";
 import { NavSection } from "@/types/dashboard.types";
 import { UserInfo } from "@/types/user.type"
-import { Home } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -46,8 +45,6 @@ export default function DashbordSidebarContent(
                         <h3 className="px-3 text-xs font-semibold uppercase text-muted-foreground tracking-wider">
                             {section.title}
                         </h3>
-
-
                     )}
                     <div className="mt-2 space-y-1">
                         {section.items.map((item, idx) => {

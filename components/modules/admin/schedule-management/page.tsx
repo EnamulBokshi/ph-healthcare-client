@@ -1,4 +1,4 @@
-import SchedulesTable from '@/components/modules/admin/schedule-management/ScheduleTable';
+import SchedulesTable from './ScheduleTable';
 import { getSchedules } from '@/services/schedule.services';
 import {
   dehydrate,

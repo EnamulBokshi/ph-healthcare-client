@@ -1,15 +1,26 @@
 "use client";
 
 import DataTable from "@/components/shared/DataTable";
+import useUrlDataTableControls from "@/components/shared/data-table/useUrlDataTableControls";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
-import { getDoctors } from "@/services/doctor.services";
+import { deleteDoctor, getDoctors } from "@/services/doctor.services";
 import { getSpecialties } from "@/services/specialty.services";
 import { IDoctor } from "@/types/doctor.types";
-import { PaginationState, SortingState } from "@tanstack/react-table";
 
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 
 
 import { doctorColumns } from "./doctorColumn";
@@ -17,6 +28,9 @@ import DoctorFilters, {
   DoctorFilterState,
   getDefaultDoctorFilters,
 } from "./DoctorFilters";
+import CreateDoctorModal from "./CreateDoctorModal";
+import DoctorDetailsModal from "./DoctorDetailsModal";
+import UpdateDoctorModal from "./UpdateDoctorModal";
 
 interface DoctorsTableProps {
   queryString: string;
@@ -26,18 +40,16 @@ interface DoctorsTableProps {
 }
 
 const DoctorsTable = ({ queryString, queryParamsObject }: DoctorsTableProps) => {
+  const queryClient = useQueryClient();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [isPending, startTransition] = useTransition();
-  const [optimisticSorting, setOptimisticSorting] =
-    useState<SortingState | null>(null);
-  const [optimisticPagination, setOptimisticPagination] =
-    useState<PaginationState | null>(null);
-  const [optimisticSearchTerm, setOptimisticSearchTerm] =
-    useState<string | null>(null);
   const [optimisticFilters, setOptimisticFilters] =
     useState<DoctorFilterState | null>(null);
+  const [selectedDoctorForView, setSelectedDoctorForView] =
+    useState<IDoctor | null>(null);
+  const [selectedDoctor, setSelectedDoctor] = useState<IDoctor | null>(null);
+  const [doctorToDelete, setDoctorToDelete] = useState<IDoctor | null>(null);
 
   const { data, isLoading, isFetching } = useQuery({
     queryKey: ["doctors", queryParamsObject],
@@ -52,60 +64,43 @@ const DoctorsTable = ({ queryString, queryParamsObject }: DoctorsTableProps) => 
     staleTime: 60 * 60 * 1000,
   });
 
-  const sortingState: SortingState = useMemo(() => {
-    const rawSortBy = queryParamsObject.sortBy;
-    const rawSortOrder = queryParamsObject.sortOrder;
-
-    const sortBy = Array.isArray(rawSortBy) ? rawSortBy[0] : rawSortBy;
-    const sortOrder = Array.isArray(rawSortOrder)
-      ? rawSortOrder[0]
-      : rawSortOrder;
-
-    if (!sortBy) {
-      return [];
-    }
-
-    return [
-      {
-        id: sortBy,
-        desc: String(sortOrder).toLowerCase() === "desc",
+  const { mutateAsync: deleteDoctorMutation, isPending: isDeletingDoctor } =
+    useMutation({
+      mutationFn: deleteDoctor,
+      onSuccess: async () => {
+        await queryClient.invalidateQueries({ queryKey: ["doctors"] });
       },
-    ];
-  }, [queryParamsObject]);
+    });
 
-  const paginationState: PaginationState = useMemo(() => {
-    const rawPage = queryParamsObject.page;
-    const rawLimit = queryParamsObject.limit;
-    const serverPage = data?.meta?.page;
-    const serverLimit = data?.meta?.limit;
-
-    const page =
-      Number(Array.isArray(rawPage) ? rawPage[0] : rawPage) || serverPage || 1;
-    const limit =
-      Number(Array.isArray(rawLimit) ? rawLimit[0] : rawLimit) ||
-      serverLimit ||
-      10;
-
-    return {
-      pageIndex: Math.max(page - 1, 0),
-      pageSize: Math.max(limit, 1),
-    };
-  }, [queryParamsObject, data?.meta?.page, data?.meta?.limit]);
-
-  const searchTermState = useMemo(() => {
-    const rawSearchTerm = queryParamsObject.searchTerm;
-    const searchTerm = Array.isArray(rawSearchTerm)
-      ? rawSearchTerm[0]
-      : rawSearchTerm;
-
-    return String(searchTerm ?? "");
-  }, [queryParamsObject]);
+  const {
+    isNavigationPending,
+    sortingState,
+    paginationState,
+    searchTermState,
+    optimisticSorting,
+    optimisticPagination,
+    optimisticSearchTerm,
+    setOptimisticPagination,
+    handleSortingChange,
+    handlePaginationChange,
+    handleSearchChange,
+  } = useUrlDataTableControls({
+    queryParamsObject,
+    searchParams,
+    pathname,
+    router,
+    serverPage: data?.meta?.page,
+    serverLimit: data?.meta?.limit,
+    defaultPageSize: 10,
+  });
 
   const filterState = useMemo<DoctorFilterState>(() => {
     const base = getDefaultDoctorFilters();
 
     const rawGender = queryParamsObject.gender;
-    const rawSpecialty = queryParamsObject.specialty;
+    const rawSpecialtyByTitle =
+      queryParamsObject["specialties.specialty.title"];
+    const rawSpecialtyLegacy = queryParamsObject.specialty;
 
     const pick = (value: string | string[] | undefined) =>
       Array.isArray(value) ? value[0] : value;
@@ -119,7 +114,10 @@ const DoctorsTable = ({ queryString, queryParamsObject }: DoctorsTableProps) => 
     return {
       ...base,
       gender: String(pick(rawGender) ?? ""),
-      specialties: toArray(rawSpecialty),
+      specialties:
+        toArray(rawSpecialtyByTitle).length > 0
+          ? toArray(rawSpecialtyByTitle)
+          : toArray(rawSpecialtyLegacy),
       experience: {
         exact: String(pick(queryParamsObject.experience) ?? ""),
         lowerOperator:
@@ -170,91 +168,13 @@ const DoctorsTable = ({ queryString, queryParamsObject }: DoctorsTableProps) => 
   }, [queryParamsObject]);
 
   useEffect(() => {
-    // Once URL-synced sorting arrives from server props, clear optimistic override.
-    setOptimisticSorting(null);
-  }, [sortingState]);
-
-  useEffect(() => {
-    // Once URL-synced pagination arrives from server props, clear optimistic override.
-    setOptimisticPagination(null);
-  }, [paginationState]);
-
-  useEffect(() => {
-    // Once URL-synced search arrives from server props, clear optimistic override.
-    setOptimisticSearchTerm(null);
-  }, [searchTermState]);
-
-  useEffect(() => {
     // Once URL-synced filters arrive from server props, clear optimistic override.
     setOptimisticFilters(null);
   }, [filterState]);
 
-  const handleSortingChange = (state: SortingState) => {
-    setOptimisticSorting(state);
-    setOptimisticPagination((prev) => ({
-      pageIndex: 0,
-      pageSize: prev?.pageSize ?? paginationState.pageSize,
-    }));
-
-    const params = new URLSearchParams(searchParams.toString());
-    const nextSort = state[0];
-
-    if (!nextSort) {
-      params.delete("sortBy");
-      params.delete("sortOrder");
-    } else {
-      params.set("sortBy", nextSort.id);
-      params.set("sortOrder", nextSort.desc ? "desc" : "asc");
-    }
-    params.set("page", "1");
-    params.set("limit", String(paginationState.pageSize));
-
-    const nextQuery = params.toString();
-    startTransition(() => {
-      router.push(nextQuery ? `${pathname}?${nextQuery}` : pathname);
-    });
-  };
-
-  const handlePaginationChange = (state: PaginationState) => {
-    setOptimisticPagination(state);
-
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("page", String(state.pageIndex + 1));
-    params.set("limit", String(state.pageSize));
-
-    const nextQuery = params.toString();
-    startTransition(() => {
-      router.push(nextQuery ? `${pathname}?${nextQuery}` : pathname);
-    });
-  };
-
-  const handleSearchChange = (searchTerm: string) => {
-    setOptimisticSearchTerm(searchTerm);
-    setOptimisticPagination((prev) => ({
-      pageIndex: 0,
-      pageSize: prev?.pageSize ?? paginationState.pageSize,
-    }));
-
-    const params = new URLSearchParams(searchParams.toString());
-    const trimmedSearchTerm = searchTerm.trim();
-
-    if (trimmedSearchTerm) {
-      params.set("searchTerm", trimmedSearchTerm);
-    } else {
-      params.delete("searchTerm");
-    }
-
-    params.set("page", "1");
-    params.set("limit", String(paginationState.pageSize));
-
-    const nextQuery = params.toString();
-    startTransition(() => {
-      router.push(nextQuery ? `${pathname}?${nextQuery}` : pathname);
-    });
-  };
-
   const clearFilterParams = (params: URLSearchParams) => {
     params.delete("gender");
+    params.delete("specialties.specialty.title");
     params.delete("specialty");
     params.delete("experience");
     params.delete("experience[gt]");
@@ -278,9 +198,9 @@ const DoctorsTable = ({ queryString, queryParamsObject }: DoctorsTableProps) => 
       params.set("gender", nextFilters.gender);
     }
 
-    nextFilters.specialties.forEach((specialtyId) => {
-      if (specialtyId) {
-        params.append("specialty", specialtyId);
+    nextFilters.specialties.forEach((specialtyTitle) => {
+      if (specialtyTitle) {
+        params.append("specialties.specialty.title", specialtyTitle);
       }
     });
 
@@ -331,9 +251,12 @@ const DoctorsTable = ({ queryString, queryParamsObject }: DoctorsTableProps) => 
     params.set("limit", String(paginationState.pageSize));
 
     const nextQuery = params.toString();
-    startTransition(() => {
-      router.push(nextQuery ? `${pathname}?${nextQuery}` : pathname);
-    });
+    setOptimisticPagination((prev) => ({
+      pageIndex: 0,
+      pageSize: prev?.pageSize ?? paginationState.pageSize,
+    }));
+
+    router.push(nextQuery ? `${pathname}?${nextQuery}` : pathname);
   };
 
   const handleClearFilters = () => {
@@ -351,9 +274,12 @@ const DoctorsTable = ({ queryString, queryParamsObject }: DoctorsTableProps) => 
     params.set("limit", String(paginationState.pageSize));
 
     const nextQuery = params.toString();
-    startTransition(() => {
-      router.push(nextQuery ? `${pathname}?${nextQuery}` : pathname);
-    });
+    setOptimisticPagination((prev) => ({
+      pageIndex: 0,
+      pageSize: prev?.pageSize ?? paginationState.pageSize,
+    }));
+
+    router.push(nextQuery ? `${pathname}?${nextQuery}` : pathname);
   };
 
   // const doctorColumns: ColumnDef<IDoctor>[] = [
@@ -369,27 +295,49 @@ const DoctorsTable = ({ queryString, queryParamsObject }: DoctorsTableProps) => 
   const specialties = specialtiesData?.data || [];
 
 const handleView = (doctor: IDoctor) => {
-  // Implement view logic here
-  console.log("View doctor:", doctor);
+  setSelectedDoctorForView(doctor);
 }
 const handleEdit = (doctor: IDoctor) => {
-  // Implement edit logic here
-  console.log("Edit doctor:", doctor);
+  setSelectedDoctor(doctor);
 }
 const handleDelete = (doctor: IDoctor) => {
-  // Implement delete logic here
-  console.log("Delete doctor:", doctor);
+  setDoctorToDelete(doctor);
 }
 
-console.log("Doctors data:", doctors);
+const getApiErrorMessage = (error: unknown, fallback: string) => {
+  const candidate = error as { response?: { data?: { message?: string } } };
+  return candidate?.response?.data?.message || fallback;
+};
+
+const handleConfirmDelete = async () => {
+  if (!doctorToDelete?.id) {
+    toast.error("Unable to delete doctor: missing doctor id");
+    return;
+  }
+
+  try {
+    const result = await deleteDoctorMutation(String(doctorToDelete.id));
+
+    if (!result?.success) {
+      toast.error(result?.message || "Failed to delete doctor");
+      return;
+    }
+
+    toast.success(result?.message || "Doctor deleted successfully");
+    setDoctorToDelete(null);
+  } catch (error: unknown) {
+    toast.error(getApiErrorMessage(error, "Failed to delete doctor"));
+  }
+};
 
   const activeSortingState = optimisticSorting ?? sortingState;
   const activePaginationState = optimisticPagination ?? paginationState;
   const activeSearchTerm = optimisticSearchTerm ?? searchTermState;
   const activeFilters = optimisticFilters ?? filterState;
-  const showLoadingState = isLoading || isFetching || isPending;
+  const showLoadingState = isLoading || isFetching || isNavigationPending;
 
   return (
+    <div className="space-y-3">
     <DataTable 
       data={doctors}
       columns={doctorColumns}
@@ -428,6 +376,62 @@ console.log("Doctors data:", doctors);
       }
 
     />
+
+      <UpdateDoctorModal
+        open={Boolean(selectedDoctor)}
+        doctor={selectedDoctor}
+        specialties={specialties}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedDoctor(null);
+          }
+        }}
+      />
+
+      <DoctorDetailsModal
+        open={Boolean(selectedDoctorForView)}
+        doctorId={selectedDoctorForView ? String(selectedDoctorForView.id) : null}
+        fallbackDoctor={selectedDoctorForView}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedDoctorForView(null);
+          }
+        }}
+      />
+
+      <AlertDialog
+        open={Boolean(doctorToDelete)}
+        onOpenChange={(open) => {
+          if (!open && !isDeletingDoctor) {
+            setDoctorToDelete(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Doctor?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. Are you sure you want to delete
+              {doctorToDelete?.name ? ` Dr. ${doctorToDelete.name}` : " this doctor"}?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeletingDoctor}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              disabled={isDeletingDoctor}
+              onClick={handleConfirmDelete}
+            >
+              {isDeletingDoctor ? "Deleting..." : "Yes, Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <div className="flex justify-end">
+        <CreateDoctorModal specialties={specialties} />
+      </div>
+    </div>
   );
 };
 
